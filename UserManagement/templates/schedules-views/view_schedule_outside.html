@@ -1,0 +1,144 @@
+    {% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Schedules</title>
+    <style>
+        .time-slot {
+            width: 200px;
+            text-align: center;
+            text-wrap: nowrap;
+        }
+
+        .room-column {
+            position: relative;
+        }
+
+        .schedule-container {
+            position: relative;
+            height: 48px;
+            width: 250px;
+        }
+        .schedule-item60 {
+            position: absolute;
+            width: 100%;
+            background-color: #FCB316;
+            padding-top:5%;
+            padding-bottom: 5%;
+            color: rgb(0, 0, 0);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            top: var(--schedule-top, 0);
+        }
+        .schedule-item120 {
+            position: absolute;
+            width: 100%;
+            background-color: #FCB316;
+            padding-top:26%;
+            padding-bottom: 26%;
+            color: rgb(0, 0, 0);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            top: var(--schedule-top, 0);
+        }
+        .schedule-item180 {
+            position: absolute;
+            width: 100%;
+            background-color: #FCB316;
+            padding-top:46%;
+            padding-bottom: 46%;
+            color: rgb(0, 0, 0);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            top: var(--schedule-top, 0);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <h2 class="mt-4">Exam Schedules</h2>
+        <div>
+            {% for day in sorted_days %}
+                <h3 class="mt-4">{{ day }}</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                {% for building, rooms in building_data.items %}
+                                    <th colspan="{{ rooms|length }}" class="text-center">{{ building }}</th>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th></th>
+                                {% for building, rooms in building_data.items %}
+                                    {% for room in rooms %}
+                                        <th class="text-center">{{ room.room_name }}</th>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hour, minute in time_slots %}
+                                <tr>
+                                    <td class="time-slot">{{ hour|format_time:minute }} - {{ hour|add_time:minute }}</td>
+                                    {% for building, rooms in building_data.items %}
+                                        {% for room, schedules in rooms.items %}
+                                            <td class="room-column">
+                                                <div class="schedule-container">
+                                                    {% for schedule in schedules %}
+                                                        {% if schedule.start_time.hour == hour and schedule.start_time.minute == minute and schedule.day == day %}
+                                                            <div class="schedule-item{{ schedule.duration }}">
+                                                                <div><strong>Course Code:</strong> {{ schedule.courseProgram.course.course_code }}</div>
+                                                                <div><strong>Section:</strong> {{ schedule.sectionYearSem.section.section_name }}</div>
+                                                                <div><strong>Proctor:</strong> {{ schedule.proctor.first_name }}</div>
+                                                                <div><strong>Status:</strong> {{ schedule.status }}</div>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </td>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        const isSidebarClosed = localStorage.getItem('sidebarClosed') === 'true';
+
+        if (isSidebarClosed) {
+            sidebar.classList.add('closed');
+            mainContent.classList.add('sidebar-closed');
+        }
+    });
+
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        sidebar.classList.toggle('closed');
+        mainContent.classList.toggle('sidebar-closed');
+
+        const isClosed = sidebar.classList.contains('closed');
+        localStorage.setItem('sidebarClosed', isClosed);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+{% load static %}
+{% load role_tags %} <!-- Add this line to load the custom tags -->
+
+<div class="sidebar">
+    <div class="menutext">
+        <h4></h4>
+    </div>
+    <div class="user-info">
+        <h2>{{ request.user.first_name }} {{ request.user.middle_name }} {{ request.user.last_name }}</h2>
+        <h5>Faculty</h5>
+    </div>
+    <div class="menutext">
+        <h4>Menu</h4>
+    </div>
+    <nav>
+        <a href="{% url 'dashboard_faculty' %}" class="menu-link">Dashboard</a>
+        {% if request.user|has_role:"Dean" %}
+        <a href="{% url 'dashboard_dean' %}" class="menu-link">To Dean Dashboard</a>
+        {% endif %}
+        <a href="{% url 'view_schedules_faculty' %}" class="menu-link">Exam Schedules</a>
+        <a href="{% url 'manage_availability' %}">Availability</a>
+        {% if request.user|has_role:"Bayanihan Leader" %}
+        <a href="{% url 'edit-course-modality' %}">Course Modality</a>
+        {% endif %}
+    </nav>
+    <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    <img src="{% static 'Images/examsync-logo.png' %}" alt="ExamSync Image">
+    <h6>&copy; 2024 ExamSync USTP</h6>
+</div>
+
+<span class="sidebar-toggle" onclick="toggleSidebar()">☰</span>
