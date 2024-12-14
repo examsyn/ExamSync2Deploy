@@ -1132,13 +1132,23 @@ def fetch_rooms(request):
 @role_required('scheduler')
 def delete_schedule_for_day(request, day):
     if request.method == 'POST':
-
-        schedules_to_delete = ExamSchedule.objects.filter(day=day)
-        schedules_to_delete.delete()
-
+        # Step 1: Temporarily disable foreign key checks
+        with connection.cursor() as cursor:
+            cursor.execute("SET foreign_key_checks = 0;")
+            
+            # Step 2: Delete schedules for the specific day (if you want to delete by condition)
+            # Alternatively, you can use `TRUNCATE` for the entire table, but for the specific day, use DELETE
+            # cursor.execute("TRUNCATE TABLE tbl_examSchedule;") # This would truncate the whole table
+            
+            # Delete schedules only for the given day
+            ExamSchedule.objects.filter(day=day).delete()
+            
+            # Step 3: Re-enable foreign key checks
+            cursor.execute("SET foreign_key_checks = 1;")
+        
         messages.success(request, f"All schedules for Day {day} have been deleted.")
-
         return HttpResponseRedirect(reverse('exam_schedules'))
+    
     return HttpResponseRedirect(reverse('exam_schedules'))
 
 from django.shortcuts import render, get_object_or_404, redirect
