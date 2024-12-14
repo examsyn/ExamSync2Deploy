@@ -97,7 +97,7 @@ WSGI_APPLICATION = 'ExamSync.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'defaultdb',
+        'NAME': 'examsync',
         'USER': 'doadmin',
         'PASSWORD': 'AVNS_t69IAsvdRDKw70wQdB1',
         'HOST': 'examsync-do-user-14266440-0.h.db.ondigitalocean.com',
