@@ -95,14 +95,13 @@ WSGI_APPLICATION = 'ExamSync.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'examsync',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': 'examsync',  # Your database name
+        'USER': 'examsync_user',  # Your database username
+        'PASSWORD': '1743ViemahC',  # Your password
+        'HOST': 'localhost',  # MariaDB is on the same server
+        'PORT': '3306',  # Default MySQL/MariaDB port
     }
 }
-
 
 
 # Password validation
