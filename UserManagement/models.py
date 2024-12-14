@@ -252,7 +252,7 @@ class Availability(models.Model):
     availabilityTime = models.CharField(max_length=15, choices=[('8:00 - 11:00', '8:00 - 11:00'), ('12:00 - 5:00', '12:00 - 5:00'), ('6:00 - 9:00', '6:00 - 9:00')])
 
     class Meta:
-        db_table = 'tbl_Availability'
+        db_table = 'tbl_availability'
 
 # USERAVAILABILITY
 class UserAvailability(models.Model):
