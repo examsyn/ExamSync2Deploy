@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-8zlws$mgufv@(fj9yrluoj!jx+(0*c!f(%!d6a^7tn5c73y_=y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['']
+ALLOWED_HOSTS = ['localhost']
 
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
@@ -97,11 +97,11 @@ WSGI_APPLICATION = 'ExamSync.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'examsync',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': 'defaultdb',
+        'USER': 'doadmin',
+        'PASSWORD': 'AVNS_t69IAsvdRDKw70wQdB1',
+        'HOST': 'examsync-do-user-14266440-0.h.db.ondigitalocean.com',
+        'PORT': '25060',
     }
 }
 
