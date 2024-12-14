@@ -2,7 +2,7 @@ import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponseRedirect
 from django.urls import reverse
-
+from django.db import connection
 from ExamSync import settings
 from .models import User, Role, UserRole, Course, Building, Program, College, Room, Section, SectionYearSem, Availability, UserAvailability, CourseModality, ExamSchedule, ProgramSection, CourseYearSem
 from .forms import UserForm, RoleForm, UserRoleForm, CourseForm, BuildingForm, ProgramForm, CollegeForm, RoomForm, SectionForm, CourseYearSem, UserAvailabilityForm, CourseProgram, ExamScheduleForm, ExamRemarksForm
@@ -1132,18 +1132,11 @@ def fetch_rooms(request):
 @role_required('scheduler')
 def delete_schedule_for_day(request, day):
     if request.method == 'POST':
-        # Step 1: Temporarily disable foreign key checks
         with connection.cursor() as cursor:
             cursor.execute("SET foreign_key_checks = 0;")
             
-            # Step 2: Delete schedules for the specific day (if you want to delete by condition)
-            # Alternatively, you can use `TRUNCATE` for the entire table, but for the specific day, use DELETE
-            # cursor.execute("TRUNCATE TABLE tbl_examSchedule;") # This would truncate the whole table
-            
-            # Delete schedules only for the given day
+
             ExamSchedule.objects.filter(day=day).delete()
-            
-            # Step 3: Re-enable foreign key checks
             cursor.execute("SET foreign_key_checks = 1;")
         
         messages.success(request, f"All schedules for Day {day} have been deleted.")
