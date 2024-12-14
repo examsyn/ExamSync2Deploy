@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-8zlws$mgufv@(fj9yrluoj!jx+(0*c!f(%!d6a^7tn5c73y_=y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost']
+ALLOWED_HOSTS = ['localhost', 'examsync-do-user-14266440-0.h.db.ondigitalocean.com', '127.0.0.1']
 
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
