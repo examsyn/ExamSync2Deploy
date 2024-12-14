@@ -10,9 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
-import pymysql
-pymysql.install_as_MySQLdb()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,7 +27,7 @@ SECRET_KEY = 'django-insecure-8zlws$mgufv@(fj9yrluoj!jx+(0*c!f(%!d6a^7tn5c73y_=y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['206.189.40.59']
+ALLOWED_HOSTS = ['']
 
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
@@ -98,13 +97,14 @@ WSGI_APPLICATION = 'ExamSync.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'examsync',  # Your database name
-        'USER': 'examsync_user',  # Your database username
-        'PASSWORD': '1743ViemahC',  # Your password
-        'HOST': 'localhost',  # MariaDB is on the same server
-        'PORT': '3306',  # Default MySQL/MariaDB port
+        'NAME': 'examsync',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
+
 
 
 # Password validation
@@ -141,6 +141,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "UserManagement/Static",  # This tells Django where to find your static files
