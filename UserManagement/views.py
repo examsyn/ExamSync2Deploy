@@ -868,7 +868,7 @@ def edit_course_modality(request):
     course_modalities = CourseModality.objects.filter(user=user)
 
     if not course_modalities.exists():
-        return render(request, 'edit_course_modality.html', {
+        return render(request, 'modality-management/assigned_modalities.html', {
             'message': 'You have not been assigned any course modalities yet.'
         })
 
