@@ -144,7 +144,8 @@ USE_TZ = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "UserManagement/Static",  # This tells Django where to find your static files
+    BASE_DIR / "static",  # This might be a path to a local 'static' folder.
+    '/workspace/UserManagement/Static',  # The folder you're missing.
 ]
 
 # Default primary key field type
