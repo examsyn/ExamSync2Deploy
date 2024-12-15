@@ -81,3 +81,4 @@ urlpatterns = [
     path('dashboard-<str:role>/', views.dashboard_view, name='dashboard_view'),
 ]
 
+handler404 = 'UserManagement.views.custom_404_view'

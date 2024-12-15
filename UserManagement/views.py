@@ -27,6 +27,8 @@ from collections import defaultdict
 def unauthorized_access(request):
     return render(request, 'unauthorized_access.html')
 
+def custom_404_view(request, exception=None):
+    return redirect('select_login_page')
 
 @login_required
 @role_required('administrator')
@@ -1165,6 +1167,7 @@ def delete_schedule_for_day(request, day):
 
 @login_required
 @csrf_exempt
+@role_required('scheduler')
 def update_schedule_status(request):
     if request.method == "POST":
         try:
@@ -1584,7 +1587,7 @@ def generate_schedule(request):
             section_end_times = {}
             yearsem_assignments = defaultdict(set)
             used_rooms_by_timeslot = defaultdict(lambda: defaultdict(int))
-            proctor_assignments = defaultdict(lambda: defaultdict(set))  # Track proctor availability by day and time slot
+            proctor_assignments = defaultdict(lambda: defaultdict(set))
 
             room_availability = {room.room_id: {day: set() for day in exam_days} for room in rooms}
 
@@ -1603,19 +1606,16 @@ def generate_schedule(request):
                 room = Room.objects.get(room_id=room_id)
                 proctor = User.objects.get(user_id=proctor_id)
 
-                # Check if the room is already booked for this time slot
                 if ExamSchedule.objects.filter(day=exam_day, start_time=start_time, room=room).exists():
                     messages.error(request, f"Room {room.room_id} is already booked on {exam_day} at {start_time}.")
                     skipped_schedules.append(exam)
                     continue
 
-                # Check if the proctor is already assigned to another exam at the same time
                 if proctor in proctor_assignments[exam_day][start_time]:
                     messages.error(request, f"Proctor {proctor.username} is already assigned to another exam at {start_time} on {exam_day}.")
                     skipped_schedules.append(exam)
                     continue
 
-                # Assign the proctor to this time slot
                 proctor_assignments[exam_day][start_time].add(proctor)
 
                 section_year_sems = SectionYearSem.objects.filter(
