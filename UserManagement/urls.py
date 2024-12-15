@@ -68,6 +68,8 @@ urlpatterns = [
     path('exam-schedules-update/', views.exam_schedule_list, name='exam_schedule_list'),
     path('exam-schedule/<int:exam_schedule_id>/', views.update_exam_schedule, name='update_exam_schedule'),
     path('delete-schedule/<str:day>/', views.delete_schedule_for_day, name='delete_schedule_for_day'),
+    path('update-schedule-status/', views.update_schedule_status, name='update_schedule_status'),
+
 
     path('dean/view-schedules/', views.exam_schedules_dean, name='view_schedules_dean'),
     path('scheduler/view-schedules/', views.exam_schedules_scheduler, name='view_schedules_scheduler'),
