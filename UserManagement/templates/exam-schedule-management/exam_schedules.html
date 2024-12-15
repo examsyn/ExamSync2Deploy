@@ -220,6 +220,7 @@
             display: inline-flex;
             align-items: center;
             margin-left: 20px;
+            margin-top: 12;
         }
 
         .delete-button {
@@ -235,6 +236,29 @@
         }
 
         .delete-button:hover {
+            background-color: #d81d1d;
+        }
+
+        .sendtodean-button-container {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 20px;
+            margin-bottom: 2;
+        }
+
+        .sendtodean-button {
+            background-color: #FCB316;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-top: 25px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .sendtodean-button:hover {
             background-color: #d81d1d;
         }
 
@@ -271,18 +295,30 @@
 
         {% for day in sorted_days %}
             <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                <div class="delete-button-container">
-                <h3 class="mt-4" style="margin-right: 10px;">{{ day }}</h3>
-                </div>
-                <!-- Delete Button next to the Day -->
-                <div class="delete-button-container">
-                    <form method="POST" action="{% url 'delete_schedule_for_day' day %}" onsubmit="return confirm('Are you sure you want to delete all schedules for this day?')">
-                        {% csrf_token %}
-                        <button type="submit" class="delete-button">Delete All Schedules</button>
-                    </form>
+                <div style="display: flex; align-items: center; margin-right: 20px;">
+                    <h3>{{ day }}</h3>
                 </div>
             </div>
-
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 3px;">
+                <div>
+                <form method="POST" action="{% url 'delete_schedule_for_day' day %}" onsubmit="return confirm('Are you sure you want to delete all schedules for this day?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        Delete All Schedules
+                    </button>
+                </form>
+                </div>
+                <div>
+                    <button class="btn btn-success update-status-btn"   data-action="scheduled" data-day="{{ day|date:'Y-m-d' }}">
+                        Send to Dean
+                    </button> 
+                </div>
+                {% if declined_days|get_item:day %}
+                        <a href="{% url 'exam_schedule_list' %}" class="btn btn-primary">
+                            Update Declined Schedules
+                        </a>
+                    {% endif %}
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>
@@ -322,7 +358,6 @@
                                                             bg-green
                                                         {% endif %}
                                                     ">
-                                                        <!-- Your other content here -->
                                                         <div><strong>Course Code:</strong> {{ schedule.courseProgram.course.course_code }}</div>
                                                         <div><strong>Section:</strong> {{ schedule.sectionYearSem.section.section_name }}</div>
                                                         <div><strong>Proctor:</strong> {{ schedule.proctor.first_name }}</div>
@@ -341,7 +376,6 @@
             </div>
         {% endfor %}
     </div>
-
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const sidebar = document.querySelector('.sidebar');
@@ -366,6 +400,44 @@
             localStorage.setItem('sidebarClosed', isClosed);
         }
     </script>
-
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const buttons = document.querySelectorAll(".update-status-btn");
+    
+            buttons.forEach(button => {
+                button.addEventListener("click", function () {
+                    const action = this.getAttribute("data-action");
+                    const day = this.getAttribute("data-day");
+    
+                    if (!action || !day) {
+                        alert("Invalid action or date.");
+                        return;
+                    }
+    
+                    fetch("{% url 'update_schedule_status' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}",
+                        },
+                        body: JSON.stringify({ action, day })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(`Schedules for ${day} have been updated to '${data.status}'.`);
+                            location.reload();  // Reload to reflect updated statuses
+                        } else {
+                            alert(data.error || "An error occurred.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        alert("An error occurred. Please try again.");
+                    });
+                });
+            });
+        });
+    </script>  
 </body>
 </html>

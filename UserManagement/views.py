@@ -2,10 +2,10 @@ import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponseRedirect
 from django.urls import reverse
-from django.db import connection
+import json
 from ExamSync import settings
-from .models import User, Role, UserRole, Course, Building, Program, College, Room, Section, SectionYearSem, Availability, UserAvailability, CourseModality, ExamSchedule, ProgramSection, CourseYearSem
-from .forms import UserForm, RoleForm, UserRoleForm, CourseForm, BuildingForm, ProgramForm, CollegeForm, RoomForm, SectionForm, CourseYearSem, UserAvailabilityForm, CourseProgram, ExamScheduleForm, ExamRemarksForm
+from .models import User, Role, UserRole, Course, Building, Program, College, Room, Section, SectionYearSem, Availability, UserAvailability, CourseModality, ExamSchedule, ProgramSection, CourseYearSem, ExamRemarks
+from .forms import UserForm, RoleForm, UserRoleForm, CourseForm, BuildingForm, ProgramForm, CollegeForm, RoomForm, SectionForm, CourseYearSem, UserAvailabilityForm, CourseProgram, ExamScheduleForm, ExamRemarksForm, ExamScheduleUpdateForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -15,6 +15,13 @@ from datetime import timedelta, datetime, time, date
 from collections import defaultdict
 from django.contrib import messages
 from django import template
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils.dateparse import parse_date
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.db import connection
+from collections import defaultdict
 
 
 def unauthorized_access(request):
@@ -535,7 +542,7 @@ def create_program(request):
         form = ProgramForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('manage_programs')  # Adjust the URL name accordingly
+            return redirect('manage_programs')
     else:
         form = ProgramForm()
     return render(request, 'program-management/create_program.html', {'form': form})
@@ -777,9 +784,6 @@ def edit_section(request, section_id):
     })
 
 
-
-
-
 @login_required
 @role_required('scheduler')
 def delete_section(request, section_id):
@@ -868,7 +872,7 @@ def edit_course_modality(request):
     course_modalities = CourseModality.objects.filter(user=user)
 
     if not course_modalities.exists():
-        return render(request, 'modality-management/assigned_modalities.html', {
+        return render(request, 'assigned_modalities.html', {
             'message': 'You have not been assigned any course modalities yet.'
         })
 
@@ -891,12 +895,12 @@ def edit_course_modality(request):
 @login_required
 @role_required('dean')
 def exam_schedules_dean(request):
-    schedules = ExamSchedule.objects.select_related(
+    schedules = ExamSchedule.objects.filter(status="Scheduled").select_related(
         'room',
         'courseProgram__course',
         'sectionYearSem__section',
         'proctor'
-    ).all()
+    )
 
     schedules_by_day = defaultdict(list)
     for schedule in schedules:
@@ -930,7 +934,7 @@ def exam_schedules_dean(request):
 @login_required
 @role_required('scheduler')
 def exam_schedules_scheduler(request):
-    schedules = ExamSchedule.objects.select_related(
+    schedules = ExamSchedule.objects.filter(status="Approved").select_related(
         'room',
         'courseProgram__course',
         'sectionYearSem__section',
@@ -966,11 +970,10 @@ def exam_schedules_scheduler(request):
         'time_slots': time_slots,
     })
 
-
 @login_required
 @role_required('faculty')
 def exam_schedules_faculty(request):
-    schedules = ExamSchedule.objects.select_related(
+    schedules = ExamSchedule.objects.filter(status="Approved").select_related(
         'room',
         'courseProgram__course',
         'sectionYearSem__section',
@@ -1045,27 +1048,40 @@ def exam_schedules_outside(request):
         'time_slots': time_slots,
     })
 
-
 # MANAGE SCHEDULES
+@login_required
+@role_required('scheduler')
 def exam_schedule_list(request):
-    # Retrieve all scheduled exams
-    exam_schedules = ExamSchedule.objects.all()  # You can apply any filters or ordering here if needed
+    exam_schedules = ExamSchedule.objects.filter(
+        Q(status="Declined")
+    ).select_related(
+        'room',
+        'courseProgram__course',
+        'sectionYearSem__section',
+        'proctor'
+    )
+    
     return render(request, 'exam-schedule-management/exam_schedule_list.html', {'exam_schedules': exam_schedules})
 
 
 @login_required
 @role_required('scheduler')
 def exam_schedules(request):
-    schedules = ExamSchedule.objects.select_related(
+    schedules = ExamSchedule.objects.filter(
+        Q(status="Declined") | Q(status="Scheduled")
+    ).select_related(
         'room',
         'courseProgram__course',
         'sectionYearSem__section',
         'proctor'
-    ).all()
+    )
 
     schedules_by_day = defaultdict(list)
     for schedule in schedules:
         schedules_by_day[schedule.day].append(schedule)
+
+    declined_days = {day: any(schedule.status == "Declined" for schedule in schedules)
+                     for day, schedules in schedules_by_day.items()}
 
     sorted_days = sorted(schedules_by_day.keys())
 
@@ -1090,7 +1106,9 @@ def exam_schedules(request):
         'sorted_days': sorted_days,
         'building_data': building_data,
         'time_slots': time_slots,
+        'declined_days': declined_days,
     })
+
 
 @login_required
 @role_required('scheduler')
@@ -1128,14 +1146,14 @@ def fetch_rooms(request):
     return JsonResponse({"rooms": room_data})
 
 
+from django.db import connection
+
 @login_required
 @role_required('scheduler')
 def delete_schedule_for_day(request, day):
     if request.method == 'POST':
         with connection.cursor() as cursor:
             cursor.execute("SET foreign_key_checks = 0;")
-            
-
             ExamSchedule.objects.filter(day=day).delete()
             cursor.execute("SET foreign_key_checks = 1;")
         
@@ -1144,13 +1162,129 @@ def delete_schedule_for_day(request, day):
     
     return HttpResponseRedirect(reverse('exam_schedules'))
 
-from django.shortcuts import render, get_object_or_404, redirect
-from .forms import ExamScheduleUpdateForm
-from .models import ExamSchedule
 
+@login_required
+@csrf_exempt
+def update_schedule_status(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            action = data.get("action")
+            day = data.get("day")
+            custom_message = data.get("custom_message", "") 
+
+            if not action or action not in ["approve", "reschedule", "scheduled"]:
+                return JsonResponse({"error": "Invalid action provided."}, status=400)
+
+            day_date = parse_date(day)
+            if not day_date:
+                return JsonResponse({"error": "Day must be in YYYY-MM-DD format."}, status=400)
+
+            if action == "approve":
+                status = "Approved"
+            elif action == "reschedule":
+                status = "Declined"
+            elif action == "scheduled":
+                status = "Scheduled"
+
+            updated_count = ExamSchedule.objects.filter(day=day_date).update(status=status)
+
+            if status == "Scheduled":
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT u.email_address 
+                        FROM tbl_users u
+                        JOIN tbl_userRole ur ON u.user_id = ur.user_id
+                        JOIN tbl_roles r ON ur.role_id = r.role_id
+                        WHERE r.role_name = 'Dean'
+                    """)
+                    dean_emails = [row[0] for row in cursor.fetchall()]
+
+                if dean_emails:
+                    subject = f"ExamSync: Exam Schedules Pending Approval"
+                    message = f"The exam schedule for {day} has been scheduled and is pending approval. Please check the system for details."
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    
+                    send_mail(
+                        subject,
+                        message,
+                        from_email,
+                        dean_emails,
+                        fail_silently=False,
+                    )
+                    messages.success(request, f"Schedules for {day} have been updated to 'Scheduled' and emails have been sent to Deans.")
+                else:
+                    messages.warning(request, "No Deans found to send the email.")
+
+            if status == "Declined":
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT u.email_address 
+                        FROM tbl_users u
+                        JOIN tbl_userRole ur ON u.user_id = ur.user_id
+                        JOIN tbl_roles r ON ur.role_id = r.role_id
+                        WHERE r.role_name = 'Scheduler'
+                    """)
+                    scheduler_emails = [row[0] for row in cursor.fetchall()]
+
+                if scheduler_emails:
+                    subject = f"ExamSync: Exam Schedule was Declined by Dean"
+                    message = f"The exam schedule for {day} has been declined. /br{custom_message}" if custom_message else f"The exam schedule for {day} has been declined."
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    
+                    send_mail(
+                        subject,
+                        message,
+                        from_email,
+                        scheduler_emails,
+                        fail_silently=False,
+                    )
+                    messages.success(request, f"Schedules for {day} have been updated to 'Declined' and emails have been sent to Schedulers.")
+                else:
+                    messages.warning(request, "No Schedulers found to send the email.")
+
+            if status == "Approved":
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT u.email_address 
+                        FROM tbl_users u
+                        JOIN tbl_userRole ur ON u.user_id = ur.user_id
+                        JOIN tbl_roles r ON ur.role_id = r.role_id
+                        WHERE r.role_name = 'Scheduler'
+                    """)
+                    scheduler_emails = [row[0] for row in cursor.fetchall()]
+
+                if scheduler_emails:
+                    subject = f"ExamSync: Exam Schedules Approved"
+                    message = f"The exam schedule for {day} has been approved."
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    
+                    send_mail(
+                        subject,
+                        message,
+                        from_email,
+                        scheduler_emails,
+                        fail_silently=False,
+                    )
+                    messages.success(request, f"Schedules for {day} have been updated to 'Approved' and emails have been sent to Schedulers.")
+                else:
+                    messages.warning(request, "No Schedulers found to send the email.")
+
+            return JsonResponse({"success": True, "status": status, "updated_count": updated_count})
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method."}, status=405)
+
+@login_required
+@role_required('scheduler')
 def update_exam_schedule(request, exam_schedule_id):
-    exam_schedule = get_object_or_404(ExamSchedule, examSchedule_id=exam_schedule_id)
-    
+    exam_schedule = get_object_or_404(
+        ExamSchedule.objects.filter(Q(examSchedule_id=exam_schedule_id) & Q(status="Declined"))
+    )
+
     if request.method == "POST":
         form = ExamScheduleUpdateForm(request.POST, instance=exam_schedule)
         if form.is_valid():
@@ -1158,7 +1292,7 @@ def update_exam_schedule(request, exam_schedule_id):
             return redirect('exam_schedule_detail', exam_schedule_id=exam_schedule.examSchedule_id)
     else:
         form = ExamScheduleUpdateForm(instance=exam_schedule)
-    
+
     return render(request, 'exam-schedule-management/exam_schedule_update.html', {'form': form})
 
 
@@ -1602,14 +1736,6 @@ def generate_schedule(request):
 
 
 # EXAM REMARKS
-# Transfer AT TOP
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import ExamSchedule, ExamRemarks
-from django.contrib.auth.decorators import login_required
-from .decorators import role_required
-from django.contrib import messages
-from django.db.models import Q
-from django.shortcuts import redirect
 
 @login_required
 @role_required('faculty')
@@ -1630,53 +1756,31 @@ def add_remark(request, examSchedule_id):
     return render(request, 'exam-remarks/add_remark.html', {'schedule': schedule})
 
 
-# views.py
-# views.py
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import ExamRemarks
-from .decorators import role_required  # Ensure this decorator checks for the dean role
-
-from collections import defaultdict
-import random
-from django.core.mail import send_mail
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
-from datetime import datetime, timedelta
-from .models import ExamRemarks, ExamSchedule, User, SectionYearSem, Room
 
 @login_required
-@role_required('dean')  # Ensure only Dean can access this view
+@role_required('dean')
 def update_remark_status(request, examRemarks_id):
-    # Fetch the ExamRemark object
     exam_remark = get_object_or_404(ExamRemarks, pk=examRemarks_id)
 
-    # Check if the remark already has a status or if it is pending (optional)
     if exam_remark.status != 'Pending':
         messages.error(request, "This remark has already been approved or declined.")
-        return redirect('dashboard_dean')  # Redirect to the dean's dashboard
+        return redirect('dashboard_dean')
     
-    # Handle the form submission (Approve or Decline)
     if request.method == 'POST':
         status = request.POST.get('status')
 
         if status not in ['Approved', 'Declined']:
             messages.error(request, "Invalid status.")
             return redirect('dashboard_dean')
-        
-        # Update the status of the remark
+
         exam_remark.status = status
         exam_remark.save()
 
-        # Success message
         messages.success(request, f'Remark status updated to {status}.')
         
-        # Fetch the related exam schedule
         exam_schedule = ExamSchedule.objects.get(examSchedule_id=exam_remark.examSchedule_id)
         
         if status == "Approved":
-            # Availability mapping for proctors (day of the week and time slot)
             availability_mapping = {
                 "Monday": {range(7, 12): 1, range(12, 18): 2, range(18, 21): 3},
                 "Tuesday": {range(7, 12): 4, range(12, 18): 5, range(18, 21): 6},
@@ -1686,11 +1790,9 @@ def update_remark_status(request, examRemarks_id):
                 "Saturday": {range(7, 12): 16, range(12, 18): 17, range(18, 21): 18},
             }
 
-            # Get the day and start time of the exam
             exam_day_name = exam_schedule.day.strftime("%A")
             exam_hour = exam_schedule.start_time.hour
 
-            # Determine the availability ID based on the availability_mapping
             availability_id = None
             for time_range, avail_id in availability_mapping.get(exam_day_name, {}).items():
                 if exam_hour in time_range:
@@ -1698,34 +1800,28 @@ def update_remark_status(request, examRemarks_id):
                     break
 
             if availability_id:
-                # Fetch available proctors for this day and time slot based on availability mapping
                 available_proctors = User.objects.filter(
                     user_roles__role__role_name='Faculty',
                     useravailability__availability__availability_id=availability_id
                 ).distinct()
 
-                # Filter out the current proctor if already assigned
                 available_proctors = available_proctors.exclude(user_id=exam_schedule.proctor_id)
 
-                # Ensure that we select a proctor who is not already assigned to another exam at the same time
                 available_proctors = [
                     proctor for proctor in available_proctors
                     if not ExamSchedule.objects.filter(proctor=proctor, day=exam_schedule.day, start_time=exam_schedule.start_time).exists()
                 ]
 
                 if available_proctors:
-                    # Select the first available proctor
                     new_proctor = available_proctors[0]
 
-                    # Update the proctor for the exam schedule
                     exam_schedule.proctor = new_proctor
                     exam_schedule.save()
 
-                    # Send email to the newly assigned proctor
                     if new_proctor.email_address:
                         subject = f"You have been re assigned to an exam as a Proctor"
-                        message = f"Dear {new_proctor.first_name},\n\nYou have been assigned as the proctor for the exam scheduled on {exam_schedule.day}.\n\nThank you."
-                        from_email = settings.DEFAULT_FROM_EMAIL  # Or use a specific email if needed
+                        message = f"Dear {new_proctor.first_name},\n\nYou have been assigned as the proctor for the exam scheduled on {exam_schedule.day}, {exam_schedule.room}, {exam_schedule.start_time}.\n\nThank you."
+                        from_email = settings.DEFAULT_FROM_EMAIL
                         
                         send_mail(
                             subject,
@@ -1736,17 +1832,16 @@ def update_remark_status(request, examRemarks_id):
                         )
                 else:
                     messages.error(request, "No available proctors found for this exam.")
-                    return redirect('dashboard_dean')  # Redirect back if no proctors are available
+                    return redirect('dashboard_dean')
 
-        # Fetch the original proctor for the email notification
         original_proctor = User.objects.get(user_id=exam_schedule.proctor_id)
 
-        # Send email to the original proctor about the remark status change
+
         if original_proctor.email_address:
             subject = f"Your exam remark has been {status}"
             message = f"Dear {original_proctor.first_name},\n\nThe remark for the exam scheduled on {exam_schedule.day} has been {status}.\n\nThank you."
-            from_email = settings.DEFAULT_FROM_EMAIL  # Or use a specific email if needed
-            
+            from_email = settings.DEFAULT_FROM_EMAIL
+
             send_mail(
                 subject,
                 message,
@@ -1755,6 +1850,5 @@ def update_remark_status(request, examRemarks_id):
                 fail_silently=False,
             )
 
-        return redirect('dashboard_dean')  # Redirect back to Dean's dashboard
-
-    return redirect('dashboard_dean')  # Fallback if it's not a POST request
+        return redirect('dashboard_dean')
+    return redirect('dashboard_dean')

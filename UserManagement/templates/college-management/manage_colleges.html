@@ -2,8 +2,9 @@
 <html>
 <head>
     <title>Manage Colleges</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
     <style>
-        /* Basic styles for the sidebar */
         .sidebar {
             height: 100%;
             width: 256px;
@@ -18,12 +19,12 @@
             border-top-right-radius: 30px;
             border-bottom-right-radius: 30px;
             border-right: 3px solid #FCB316;
-            z-index: 1000; /* Ensure the sidebar is above other elements */
-            transition: transform 0.3s ease; /* Animation for sidebar movement */
+            z-index: 1000;
+            transition: transform 0.3s ease;
         }
 
         .sidebar.closed {
-            transform: translateX(-250px); /* Move sidebar entirely off-screen */
+            transform: translateX(-250px);
         }
 
         .sidebar .user-info {

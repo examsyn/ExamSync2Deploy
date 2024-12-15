@@ -186,6 +186,7 @@
                     <th>Room</th>
                     <th>Proctor</th>
                     <th>Course</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -199,6 +200,7 @@
                         <td>{{ schedule.room }}</td>
                         <td>{{ schedule.proctor }}</td>
                         <td>{{ schedule.courseProgram.course.course_code }} - {{ schedule.courseProgram.course.course_name }}</td>
+                        <td>{{ schedule.status }}</td>
                         <td>
                             <a href="{% url 'update_exam_schedule' exam_schedule_id=schedule.examSchedule_id %}" class="btn btn-primary">Edit</a>
                         </td>
