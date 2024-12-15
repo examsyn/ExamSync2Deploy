@@ -25,6 +25,12 @@
             {% if request.user|has_role:"Scheduler" %}
             <a href="{% url 'dashboard_scheduler' %}" style="color: white; text-decoration: none; background-color: #1A1851; border-radius: 5px; transition: background-color 0.3s ease;">Scheduler</a>
             {% endif %}
+
+        </div>
+        <div style="display: flex; justify-content: center; gap: 7px;">
+            {% if request.user|has_role:"Bayanihan Leader" %}
+                <a href="{% url 'dashboard_faculty' %}" style="color: white;    text-decoration: none; background-color: #1A1851; border-radius: 5px;  transition: background-color 0.3s ease;">Bayanihan Leader</a>
+            {% endif %}
         </div>
     </div>
     <div class="menutext">

@@ -10,20 +10,26 @@
             <h4>Your Roles</h4>
         </div>
         <div style="display: flex; justify-content: center; gap: 7px;">
-            {% if request.user|has_role:"faculty" %}
+            {% if request.user|has_role:"Faculty" %}
             <a href="{% url 'dashboard_faculty' %}" style="color: white; text-decoration: none; background-color: #1A1851; border-radius: 5px; transition: background-color 0.3s ease;">Faculty</a>
             {% endif %}
             
-            {% if request.user|has_role:"dean" %}
+            {% if request.user|has_role:"Dean" %}
             <a href="{% url 'dashboard_dean' %}" style="color: white; text-decoration: none; background-color: #1A1851; border-radius: 5px; transition: background-color 0.3s ease;">Dean</a>
             {% endif %}
             
-            {% if request.user|has_role:"administrator" %}
+            {% if request.user|has_role:"Administrator" %}
             <a href="{% url 'dashboard_administrator' %}" style="color: white; text-decoration: none; background-color: #1A1851; border-radius: 5px; transition: background-color 0.3s ease;">Admin</a>
             {% endif %}
             
-            {% if request.user|has_role:"scheduler" %}
+            {% if request.user|has_role:"Scheduler" %}
             <a href="{% url 'dashboard_scheduler' %}" style="color: white; text-decoration: none; background-color: #1A1851; border-radius: 5px; transition: background-color 0.3s ease;">Scheduler</a>
+            {% endif %}
+
+        </div>
+        <div style="display: flex; justify-content: center; gap: 7px;">
+            {% if request.user|has_role:"Bayanihan Leader" %}
+                <a href="{% url 'dashboard_faculty' %}" style="color: white;    text-decoration: none; background-color: #1A1851; border-radius: 5px;  transition: background-color 0.3s ease;">Bayanihan Leader</a>
             {% endif %}
         </div>
     </div>
