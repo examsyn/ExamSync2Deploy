@@ -313,11 +313,13 @@
                         Send to Dean
                     </button> 
                 </div>
-                {% if declined_days|get_item:day %}
+                <div>
+                    {% if declined_days|get_item:day %}
                         <a href="{% url 'exam_schedule_list' %}" class="btn btn-primary">
                             Update Declined Schedules
                         </a>
                     {% endif %}
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered">

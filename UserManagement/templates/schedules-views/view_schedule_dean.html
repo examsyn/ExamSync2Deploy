@@ -382,44 +382,52 @@
                     const day = this.getAttribute("data-day");
 
                     if (action === "reschedule") {
+
                         document.getElementById('declineMessageContainer').style.display = 'block';
                     } else {
+
                         document.getElementById('declineMessageContainer').style.display = 'none';
+                        updateStatus(action, day);
                     }
                 });
             });
 
-            document.getElementById('submitDeclineMessage').addEventListener('click', function() {
+            document.getElementById('submitDeclineMessage').addEventListener('click', function () {
                 const customMessage = document.getElementById('customMessage').value;
                 const day = document.querySelector('.update-status-btn[data-action="reschedule"]').getAttribute("data-day");
 
-                fetch("{% url 'update_schedule_status' %}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": "{{ csrf_token }}",
-                    },
-                    body: JSON.stringify({
-                        action: 'reschedule',
-                        day: day,
-                        custom_message: customMessage
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`Schedules for ${day} have been updated to '${data.status}'.`);
-                        location.reload();
-                    } else {
-                        alert(data.error || "An error occurred.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    alert("An error occurred. Please try again.");
-                });
+                updateStatus('reschedule', day, customMessage);
             });
         });
+
+        function updateStatus(action, day, customMessage = "") {
+            fetch("{% url 'update_schedule_status' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: JSON.stringify({
+                    action: action,
+                    day: day,
+                    custom_message: customMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Schedules for ${day} have been updated to '${data.status}'.`);
+                    location.reload();
+                } else {
+                    alert(data.error || "An error occurred.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
+            });
+        }
+
     </script>
 </body>
 </html>

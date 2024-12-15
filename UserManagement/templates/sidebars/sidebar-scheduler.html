@@ -8,11 +8,12 @@
         <h5>Scheduler</h5>
     </div>
     <div class="menutext">
-        <h2>Menu</h2>
+        <h4>Menu</h4>
     </div>
     <nav>
         <a href="{% url 'dashboard_scheduler' %}" class="menu-link">Dashboard</a>
-        <a href="{% url 'view_schedules_scheduler' %}" class="menu-link">Exam Schedules</a>
+        <a href="{% url 'view_schedules_scheduler' %}" class="menu-link">Approved Schedules</a>
+        <a href="{% url 'exam_schedules' %}" class="menu-link">Pending Schedules</a>
         <a href="{% url 'generate_schedule' %}" class="menu-link">Exam Schedule Management</a>
     </nav>
     <nav>        
