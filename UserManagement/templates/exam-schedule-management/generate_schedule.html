@@ -320,20 +320,18 @@
             </div>
             
             <div class="form-group" id="courseCheckboxes">
-                <!-- Course checkboxes will be inserted here -->
             </div>
             
             <div class="form-group" id="hiddenCourses" style="display:none;">
-                <!-- Hidden courses -->
             </div>
 
             <div class="form-group">
-                <label for="id_exam_semester">Exam Semester</label>
+                <label style="font-weight: bold;" for="id_exam_semester">Exam Semester</label>
                 {{ form.exam_semester }}
             </div>
 
             <div class="form-group">
-                <label for="id_exam_term">Exam Term</label>
+                <label style="font-weight: bold;" for="id_exam_term">Exam Term</label>
                 {{ form.exam_term }}
             </div>
 
@@ -343,32 +341,45 @@
             </div>
 
             <div class="form-group">
-                <label for="id_courses">Select Additional Courses</label>
-                <div class="scrollable-checkboxes">
+                <div>
+                <label style="font-weight: bold;" for="id_courses">Select Additional Courses</label>
+                <div class="search-form">
+                    <input style="display: flex;" type="text" id="searchCourses" placeholder="Search courses..." />
+                </div>
+                </div>
+                <div class="scrollable-checkboxes" id="coursesList">
                     {{ form.courses }}
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="id_rooms">Select Rooms</label>
-                <div class="scrollable-checkboxes">
+                <label style="font-weight: bold;" for="id_rooms">Select Rooms</label>
+                <div class="search-form">
+                    <input style="display: flex;" type="text" id="searchRooms" placeholder="Search rooms..." />
+                </div>
+                <div class="scrollable-checkboxes" id="roomsList">
                     {{ form.rooms }}
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="id_start_time">Start Time</label>
+                <label style="font-weight: bold;" for="id_start_time">Start Time</label>
                 {{ form.start_time }}
             </div>
 
             <div class="form-group">
-                <label for="id_end_time">End Time</label>
+                <label style="font-weight: bold;" for="id_end_time">End Time</label>
                 {{ form.end_time }}
             </div>
 
             <div class="form-group">
-                <label for="id_exam_days">Available Exam Days</label>
-                {{ form.exam_days }}
+                <label style="font-weight: bold;" for="id_exam_days">Available Exam Days</label>
+                <div class="search-form">
+                    <input  style="display: flex;" type="text" id="searchExamDays" placeholder="Search exam days..." />
+                </div>
+                <div class="scrollable-checkboxes" id="examDaysList">
+                    {{ form.exam_days }}
+                </div>
             </div>
             <button type="submit">Generate Schedule</button>
         </form>
@@ -468,7 +479,43 @@
             return cookieValue;
         }
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchCourses = document.getElementById('searchCourses');
+            const searchRooms = document.getElementById('searchRooms');
+            const searchExamDays = document.getElementById('searchExamDays');
+            
+            const coursesList = document.getElementById('coursesList');
+            const roomsList = document.getElementById('roomsList');
+            const examDaysList = document.getElementById('examDaysList');
 
+            searchCourses.addEventListener('input', function() {
+                filterList(coursesList, searchCourses.value);
+            });
+
+            searchRooms.addEventListener('input', function() {
+                filterList(roomsList, searchRooms.value);
+            });
+
+            searchExamDays.addEventListener('input', function() {
+                filterList(examDaysList, searchExamDays.value);
+            });
+
+            function filterList(listContainer, searchValue) {
+                const items = listContainer.getElementsByTagName('label');
+                for (let i = 0; i < items.length; i++) {
+                    const label = items[i];
+                    const itemText = label.textContent || label.innerText;
+                    if (itemText.toLowerCase().includes(searchValue.toLowerCase())) {
+                        label.style.display = "";
+                    } else {
+                        label.style.display = "none";
+                    }
+                }
+            }
+        });
+
+    </script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const sidebar = document.querySelector('.sidebar');

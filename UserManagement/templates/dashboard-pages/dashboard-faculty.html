@@ -191,7 +191,7 @@
 
     <div class="main-content">
         <h1>Welcome to Faculty Dashboard</h1>
-        <table>
+        <table id="faculty-table">
             <thead>
                 <tr>
                     <th>Course</th>
@@ -212,20 +212,18 @@
                         <td>{{ schedule.start_time }}</td>
                         <td>{{ schedule.end_time }}</td>
                         <td>
-                            <button onclick="toggleModal('{{ schedule.examSchedule_id }}')">Add Remark</button>
+                            <button class="btn-primary" style="width: 100%;" onclick="toggleModal('{{ schedule.examSchedule_id }}')">Add Remark</button>
                         </td>
                     </tr>
-            
-                    <!-- Modal -->
-                    <div id="modal-{{ schedule.examSchedule_id }}" class="modal">
-                        <form method="POST" action="{% url 'add_remark' schedule.examSchedule_id %}">
+                    <div id="modal-{{ schedule.examSchedule_id }}" class="modal" style=" margin-top: 10px; margin-bottom: 10px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50%; background-color: #fff; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); z-index: 1000;">
+                        <form method="POST" action="{% url 'add_remark' schedule.examSchedule_id %}" style="display: flex; flex-direction: column; gap: 10px;">
                             {% csrf_token %}
-                            <label for="remarksDescription">Remark:</label>
-                            <textarea name="remarksDescription" rows="4" style="width: 100%;" placeholder="Enter your remark..."></textarea>
-                            <button type="submit">Submit</button>
-                            <button type="button" onclick="toggleModal('{{ schedule.examSchedule_id }}')">Close</button>
+                            <label for="remarksDescription" style="font-weight: bold; margin-bottom: 5px;">Remark:</label>
+                            <textarea name="remarksDescription" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;" placeholder="Enter your remark..."></textarea>
+                            <button type="submit" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Submit</button>
+                            <button type="button" onclick="toggleModal('{{ schedule.examSchedule_id }}')" style="padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">Close</button>
                         </form>
-                    </div>
+                    </div>                   
                     {% endfor %}
                 {% else %}
                     <tr>
@@ -243,6 +241,9 @@
         
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const sidebar = document.querySelector('.sidebar');
@@ -254,6 +255,16 @@
                 sidebar.classList.add('closed');
                 mainContent.classList.add('sidebar-closed');
             }
+
+            // Initialize DataTable with sorting disabled for the Actions column
+            $('#faculty-table').DataTable({
+                "columnDefs": [
+                    {
+                        "targets": -1,  // Disabling sorting on the last column (Actions)
+                        "orderable": false
+                    }
+                ]
+            });
         });
 
         function toggleSidebar() {

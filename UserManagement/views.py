@@ -1099,6 +1099,11 @@ def exam_schedules(request):
         if schedule.room:
             building_data[building][schedule.room].append(schedule)
 
+    for building in building_data:
+        sorted_rooms = sorted(building_data[building].keys(), key=lambda room: room.room_id)
+        sorted_building_data = {room: building_data[building][room] for room in sorted_rooms}
+        building_data[building] = sorted_building_data
+
     time_slots = [(hour, minute) for hour in range(7, 21) for minute in [0, 30]]
     for schedule in schedules:
         schedule.duration = (schedule.end_time.hour * 60 + schedule.end_time.minute) - (schedule.start_time.hour * 60 + schedule.start_time.minute)
@@ -1316,10 +1321,11 @@ def initialize_population(size, courses, days, rooms, proctors, time_slots, exam
         for course in courses
     }
 
+    # Sort courses based on section count and course program id
     courses_sorted = sorted(courses, key=lambda c: (-course_section_counts[c.course_id], c.courseProgram.program.program_id))
 
     course_groups = defaultdict(list)
-    for course in courses:
+    for course in courses_sorted:  # Use the sorted courses
         key = (course.courseProgram_id, course.yearSem_id)
         course_groups[key].append(course)
 
@@ -1377,19 +1383,13 @@ def initialize_population(size, courses, days, rooms, proctors, time_slots, exam
                 course_schedule_conflicts[course_key][day].add(available_time_slot)
                 proctor_id = random.choice(proctors).user_id
 
-                schedule.append([
-                    course_id,
-                    day,
-                    available_time_slot,
-                    room_id,
-                    proctor_id
-                ])
-
+                schedule.append([course_id, day, available_time_slot, room_id, proctor_id])
                 time_slot_counter += 1
 
         population.append(schedule)
 
     return population
+
 
 def generate_time_slots(start_time, end_time, exam_duration):
     current_time = start_time
@@ -1408,6 +1408,7 @@ def fitness_function(schedule, courses_by_yearsem_program, exam_duration):
     used_proctors = defaultdict(set)
     conflicting_courses = defaultdict(list)
     program_day_count = defaultdict(int)
+    program_timeslot_usage = defaultdict(set)
 
     for exam in schedule:
         course_id, day, start_time, room_id, proctor_id = exam
@@ -1427,13 +1428,16 @@ def fitness_function(schedule, courses_by_yearsem_program, exam_duration):
         program_id = course.courseProgram.program.program_id
         yearSem_id = course.yearSem.yearSem_id
 
-        conflicting_courses[(program_id, yearSem_id)].append((day, start_time))
+        if (program_id, yearSem_id) in program_timeslot_usage and (day, start_time) in program_timeslot_usage[(program_id, yearSem_id)]:
+            score -= 200
+
+        program_timeslot_usage[(program_id, yearSem_id)].add((day, start_time))
 
         program_day_count[(program_id, yearSem_id, day)] += 1
-
-    for key, count in program_day_count.items():
-        if count > 3:
+        if program_day_count[(program_id, yearSem_id, day)] > 3:
             score -= 100
+
+        conflicting_courses[(program_id, yearSem_id)].append((day, start_time))
 
     for key, exams in conflicting_courses.items():
         seen_timeslots = set()
@@ -1441,7 +1445,9 @@ def fitness_function(schedule, courses_by_yearsem_program, exam_duration):
             if exam in seen_timeslots:
                 score -= 200
             seen_timeslots.add(exam)
+
     return score
+
 
 def selection(population, fitness_scores):
     sorted_population = sorted(zip(population, fitness_scores), key=lambda x: x[1], reverse=True)
@@ -1600,6 +1606,9 @@ def generate_schedule(request):
                 "Saturday": {range(7, 12): 16, range(12, 18): 17, range(18, 21): 18},
             }
 
+            # Collect all proctors for the email
+            all_proctors_emails = set()
+
             for exam in best_schedule:
                 course_id, exam_day, start_time, room_id, proctor_id = exam
                 course = CourseYearSem.objects.get(course_id=course_id)
@@ -1697,6 +1706,23 @@ def generate_schedule(request):
                     )
                     exam_schedules.append(exam_schedule)
 
+                    # Collect proctor's email
+                    if proctor.email_address:
+                        all_proctors_emails.add(proctor.email_address)
+
+            # Send bulk email to all proctors after the schedules are generated
+            if all_proctors_emails:
+                subject = "Exam Schedule Generated"
+                message = "A schedule has been generated. Please check ExamSync to see your schedules."
+                from_email = settings.DEFAULT_FROM_EMAIL
+                send_mail(
+                    subject,
+                    message,
+                    from_email,
+                    list(all_proctors_emails),
+                    fail_silently=False
+                )
+
             for exam in skipped_schedules:
                 course_id, exam_day, start_time, room_id, proctor_id = exam
                 course = CourseYearSem.objects.get(course_id=course_id)
@@ -1733,7 +1759,6 @@ def generate_schedule(request):
         form = ExamScheduleForm()
 
     return render(request, 'exam-schedule-management/generate_schedule.html', {'form': form})
-
 
 # EXAM REMARKS
 
