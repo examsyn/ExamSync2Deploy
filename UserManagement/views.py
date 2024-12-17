@@ -1418,19 +1418,20 @@ def fitness_function(schedule, courses_by_yearsem_program, exam_duration):
         else:
             used_rooms[(day, start_time, room_id)] = True
 
-        if (day, start_time) in used_proctors[proctor_id]:
-            score -= 50
-        else:
-            used_proctors[proctor_id].add((day, start_time))
+        if proctor_id in used_proctors:
+            for assigned_day, assigned_time in used_proctors[proctor_id]:
+                if assigned_day == day and assigned_time == start_time:
+                    score -= 50
+        used_proctors[proctor_id].add((day, start_time))
 
         course = courses_by_yearsem_program[course_id]
         program_id = course.courseProgram.program.program_id
         yearSem_id = course.yearSem.yearSem_id
 
-        if (day, start_time) in program_timeslot_usage[(program_id, yearSem_id)]:
+        if (program_id, yearSem_id) in program_timeslot_usage and (day, start_time) in program_timeslot_usage[(program_id, yearSem_id)]:
             score -= 200
-        else:
-            program_timeslot_usage[(program_id, yearSem_id)].add((day, start_time))
+
+        program_timeslot_usage[(program_id, yearSem_id)].add((day, start_time))
 
         program_day_count[(program_id, yearSem_id, day)] += 1
         if program_day_count[(program_id, yearSem_id, day)] > 3:
@@ -1446,7 +1447,6 @@ def fitness_function(schedule, courses_by_yearsem_program, exam_duration):
             seen_timeslots.add(exam)
 
     return score
-
 
 
 def selection(population, fitness_scores):
@@ -1729,30 +1729,12 @@ def generate_schedule(request):
                 room = Room.objects.get(room_id=room_id)
                 proctor = User.objects.get(user_id=proctor_id)
 
-                valid_sections = SectionYearSem.objects.filter(
-                    programSection__program=course.courseProgram.program,
-                    yearSem=course.yearSem
-                )
-
-                if not valid_sections.exists():
-                    messages.error(
-                        request, 
-                        f"No valid sections found for course {course.course.course_code} in program {course.courseProgram.program.program_name}."
-                    )
-                    continue
-
-                available_rooms = [
-                    room for room in rooms 
-                    if (room.room_id, exam_day, start_time) not in room_availability[room.room_id]
-                ]
-
+                available_rooms = [room for room in rooms if (room.room_id, exam_day, start_time) not in room_availability[room.room_id]]
+                
                 if available_rooms:
                     assigned_room = random.choice(available_rooms)
                 else:
                     assigned_room = room
-
-
-                assigned_section = valid_sections.first()
 
                 exam_schedule = ExamSchedule(
                     examSemester=form.cleaned_data['exam_semester'],
@@ -1762,7 +1744,7 @@ def generate_schedule(request):
                     end_time=(datetime.combine(exam_day, start_time) + timedelta(minutes=exam_duration)).time(),
                     exam_duration=exam_duration,
                     proctor=proctor,
-                    sectionYearSem=assigned_section,
+                    sectionYearSem=SectionYearSem.objects.first(),
                     courseYearSem=course,
                     courseProgram=course.courseProgram,
                     room=assigned_room,
@@ -1799,6 +1781,7 @@ def add_remark(request, examSchedule_id):
     return render(request, 'exam-remarks/add_remark.html', {'schedule': schedule})
 
 
+
 @login_required
 @role_required('dean')
 def update_remark_status(request, examRemarks_id):
@@ -1821,8 +1804,6 @@ def update_remark_status(request, examRemarks_id):
         messages.success(request, f'Remark status updated to {status}.')
         
         exam_schedule = ExamSchedule.objects.get(examSchedule_id=exam_remark.examSchedule_id)
-        
-        original_proctor = User.objects.get(user_id=exam_schedule.proctor_id)
         
         if status == "Approved":
             availability_mapping = {
@@ -1877,6 +1858,9 @@ def update_remark_status(request, examRemarks_id):
                 else:
                     messages.error(request, "No available proctors found for this exam.")
                     return redirect('dashboard_dean')
+
+        original_proctor = User.objects.get(user_id=exam_schedule.proctor_id)
+
 
         if original_proctor.email_address:
             subject = f"Your exam remark has been {status}"
