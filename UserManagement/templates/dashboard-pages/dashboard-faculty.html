@@ -195,6 +195,7 @@
             <thead>
                 <tr>
                     <th>Course</th>
+                    <th>Section</th>
                     <th>Room</th>
                     <th>Date</th>
                     <th>Start Time</th>
@@ -207,6 +208,7 @@
                     {% for schedule in schedules %}
                     <tr>
                         <td>{{ schedule.courseYearSem.course.course_name }}</td>
+                        <td>{{ schedule.sectionYearSem.section.section_name }}</td>
                         <td>{{ schedule.room.room_name }}</td>
                         <td>{{ schedule.day }}</td>
                         <td>{{ schedule.start_time }}</td>
@@ -256,11 +258,10 @@
                 mainContent.classList.add('sidebar-closed');
             }
 
-            // Initialize DataTable with sorting disabled for the Actions column
             $('#faculty-table').DataTable({
                 "columnDefs": [
                     {
-                        "targets": -1,  // Disabling sorting on the last column (Actions)
+                        "targets": -1,
                         "orderable": false
                     }
                 ]
@@ -282,8 +283,8 @@
         function toggleModal(id) {
             const modal = document.getElementById(`modal-${id}`);
             const backdrop = document.getElementById('modal-backdrop');
-            modal.classList.toggle('show');  // Toggle the visibility of the modal
-            backdrop.classList.toggle('show');  // Show the backdrop
+            modal.classList.toggle('show');
+            backdrop.classList.toggle('show');
         }
     </script>    
 </body>
